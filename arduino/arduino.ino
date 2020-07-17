@@ -10,15 +10,17 @@ irqISR(irq2, isr2);
 MotorWheel w2(10, 11, 6, 7, &irq2);
 
 
-int spd[3] = {}, i = 0, cur_spd[3] = {}, w1spd = 0, w2spd = 0;
+int i = 0;
+char spd[3] = {};
 
 
 void setup() {
-	Serial.begin(19200);
+	Serial.begin(19200, SERIAL_8N1);
 	TCCR1B = TCCR1B & 0xf8 | 0x01;
-	// TCCR2B = TCCR2B & 0xf8 | 0x01;
-	w1.PIDEnable(0.26, 0.00, 0.00, 20);
-	w2.PIDEnable(0.26, 0.00, 0.00, 20);
+	TCCR2B = TCCR2B & 0xf8 | 0x01;
+	w1.PIDEnable(KC, TAUI, TAUD, 30);
+	w2.PIDEnable(KC, TAUI, TAUD, 30);
+	Serial.println("Hello");
 }
 
 
@@ -26,17 +28,23 @@ void loop() {
 	w1.PIDRegulate();
     w2.PIDRegulate();
 
-    if (Serial.available() >= 8) {
-        Serial.readBytes((unsigned char*)spd, 8);
+    if (Serial.available() >= 2) {
+		Serial.println("Received!");
+        Serial.readBytes(spd, 2);
+
+		//w1.setSpeedMMPS(100), w2.setSpeedMMPS(-100);
+		// w1.setSpeedMMPS(-100), w2.setSpeedMMPS(100), i = 0;
+		
         if (spd[0] == 0 && spd[1] == 0) 
             w1.setSpeedMMPS(0), w2.setSpeedMMPS(0);
         if (spd[0] == 0 && spd[1] != 0) 
             w1.setSpeedMMPS(spd[1]), w2.setSpeedMMPS(spd[1]);
         if (spd[0] != 0 && spd[1] == 0)
             w1.setSpeedMMPS(spd[0]), w2.setSpeedMMPS(-spd[0]);
+		
     }
 
-	if (Serial.availableForWrite() >= 8 && i % 10000 == 0) {
+	//if (Serial.availableForWrite() >= 8 && i % 1000000 == 0) {
 		/*w1spd = w1.getSpeedMMPS();
 		w2spd = w2.getSpeedMMPS();
 
@@ -46,9 +54,10 @@ void loop() {
 			cur_spd[0] = w1spd, cur_spd[1] = 0;
 		
 		Serial.write((char*)cur_spd, 8); */
-		Serial.write((unsigned char*)spd, 8);
-	}
-	i++;
+	//	Serial.print(spd[0]);
+	//	Serial.print(" ");
+	//	Serial.println(spd[1]);
+	//}
 }
 
 /*

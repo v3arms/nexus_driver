@@ -11,12 +11,13 @@
 #include "rs232.h"
 
 
-const int SERIALBUF_SIZE   = 1024; //ints
+const int SERIALBUF_SIZE   = 1024;
 const int ROS_RATE         = 10;
 const int BAUD_RATE        = 19200;
 const int TOPIC_QUEUE_SIZE = 1000;
 const int TTYUSB0_COM_PORT = 16;
 const int NEXUS_WHEELSPAN  = 250;
+const int SENDBUF_SIZE     = 3; 
 
 
 class NexusDriver {
@@ -38,7 +39,7 @@ private :
 
     geometry_msgs::Twist _spd_true;
     geometry_msgs::Twist _spd_desired; 
-    int*            _serialbuf;
+    char           *_serialbuf, *_sendbuf;
     int             _comport_number;
 
     void callback(const geometry_msgs::Twist::ConstPtr& twist);
