@@ -30,11 +30,12 @@ void NexusDriver::publishState() {
 
 
 void NexusDriver::setStateDesired(const geometry_msgs::Twist::ConstPtr& twist) {
+    double ang_mmps = twist->angular.z * NEXUS_WHEELSPAN / 2.0;
     if (twist->linear.x != 0 && twist->angular.z != 0)
         throw ros::Exception("Complex movement is currently not supported. Set nonzero linear or angular speed, but not both.");
     
     _sendbuf[0] = static_cast<unsigned char>(twist->linear.x);
-    _sendbuf[1] = static_cast<unsigned char>(twist->angular.z);
+    _sendbuf[1] = static_cast<unsigned char>(ang_mmps);
     if (RS232_SendBuf(_comport_number, (unsigned char*)_sendbuf, 2) != 2)
         throw ros::Exception("Unable to send state. Maybe connection error.");
     usleep(50000);
