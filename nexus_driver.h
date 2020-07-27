@@ -17,6 +17,8 @@ const int BAUD_RATE        = 19200;
 const int TOPIC_QUEUE_SIZE = 1000;
 const int TTYUSB0_COM_PORT = 16;
 const int NEXUS_WHEELSPAN  = 250;
+const int NEXUS_MAX_LINSPD = 127;
+const int NEXUS_MAX_ANGSPD = 127;
 const int SENDBUF_SIZE     = 3; 
 
 
@@ -45,15 +47,3 @@ private :
     void callback(const geometry_msgs::Twist::ConstPtr& twist);
 
 };
-
-
-/*
-int bytesToInt(unsigned char bytes[], int offset) {
-    int ret = 0;
-    for (int i = offset; i < offset + 4; i++) {
-        ret <<= 8;
-        ret |= (int)bytes[i] & 0xFF;
-    }
-    return ret;
-}
-*/
