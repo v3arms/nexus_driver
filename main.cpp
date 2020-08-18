@@ -9,14 +9,12 @@ int main(int argc, char *argv[]) {
     ros::NodeHandle nh;
     try {
         NexusDriver drv(nh);
-        drv.setRate(10);
+        drv.setRate(3);
         for (int i = 0; ros::ok(); i = (i + 1) % 40) {
             try {
-                if (i == 0) 
-                    drv.publishState();
                 ros::spinOnce();
                 drv.sleep();
-                // drv.getState();
+                drv.getWheelState();
             } catch (ros::Exception& e) {
                 ROS_INFO_STREAM(e.what());
                 if (DEBUG)
