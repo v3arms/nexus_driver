@@ -1,4 +1,5 @@
-#pragma once
+#ifndef NEXUS_DRIVER_
+#define NEXUS_DRIVER_
 
 
 #include <ros/ros.h>
@@ -15,7 +16,7 @@ const int SERIALBUF_SIZE   = 1024;
 const int ROS_RATE         = 10;
 const int BAUD_RATE        = 19200;
 const int TOPIC_QUEUE_SIZE = 1000;
-const int TTYUSB0_COM_PORT = 16;
+// const char* COMPORT_DEVICE = "/tty/USB0";
 
 const int WHEELBASE        = 280;
 const int WHEELDIAM        = 143;
@@ -30,7 +31,7 @@ const double PI            = 3.14159265359;
 
 class NexusDriver {
 public :
-    NexusDriver(ros::NodeHandle& nh, int comport_number = TTYUSB0_COM_PORT);
+    NexusDriver(ros::NodeHandle& nh);
     ~NexusDriver();
 
     void publishOdometry();
@@ -63,11 +64,17 @@ private :
     int                  _wheelbase;
     int                  _red_ratio;
     int                  _encoder_ppr;
-    int                  _wheel_diam;
+    int                  _wheeldiam;
     int16_t              _odom_w1_ps, _odom_w2_ps;
     double               _firmw_delta_t;
+    
+    const char*          _comport_device_name;
+    int                  _comport_device_fd;
 
     void set_state_callback(const geometry_msgs::Twist::ConstPtr& twist);
     void pid_callback(const std_msgs::Float64::ConstPtr& effort);
 
 };
+
+
+#endif

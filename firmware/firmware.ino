@@ -1,9 +1,9 @@
 #include "PinChangeInt.h"
-#include <cmath>
+#include <math.h>
 
 
 const long int BAUD_RATE = 38400;
-const long int DELTA_T   = 100000;
+const long int DELTA_T   = 50000;
 
 
 const struct wheel_specs {
@@ -23,11 +23,11 @@ volatile struct encoder_ISRVars_p {
 volatile int16_t pulses_count[2] = {}, dir_w1 = 1, dir_w2 = 1;
 void encoder_ISR_w1() {
     pulses_count[0]++;
-    dir_w1 = !^dir_w1;
+    // dir_w1 = !^dir_w1;
 }
 void encoder_ISR_w2() {
     pulses_count[1]++;
-    dir_w2 = !^dir_w2;
+    // dir_w2 = !^dir_w2;
 }
 
 
@@ -58,6 +58,7 @@ void loop() {
 	if (curr_micros - prev_micros > DELTA_T) {
 	    if (Serial.availableForWrite() >= 2 * sizeof(int16_t)) {
             Serial.write((char*)pulses_count, 2 * sizeof(int16_t));
+            
             /*
             Serial.println(curr_micros - prev_micros);
             Serial.print(pulses_count[0]);
@@ -72,7 +73,7 @@ void loop() {
 	}
 
 	if (Serial.available() >= 4) {
-        Serial.readBytes(spd, 2 * sizeof(int16_t));
+        Serial.readBytes((char*)spd, 2 * sizeof(int16_t));
 
         digitalWrite(w1.dir_pin, spd[0] > 0);
         digitalWrite(w2.dir_pin, spd[1] > 0);

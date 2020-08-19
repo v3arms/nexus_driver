@@ -205,5 +205,5 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(nexus_driver nexus_driver.cpp rs232.c main.cpp)
+add_executable(nexus_driver nexus_driver.cpp comport.cpp main.cpp)
 target_link_libraries(nexus_driver ${catkin_LIBRARIES})
