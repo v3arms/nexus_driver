@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) {
     ros::NodeHandle nh;
     try {
         NexusDriver *drv = new NexusDriver(nh);
-        drv->setRate(50);
+        drv->setRate(25);
         for (int i = 0; ros::ok(); i = (i + 1) % 40) {
             try {
                 ros::spinOnce();
