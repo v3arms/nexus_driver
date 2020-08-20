@@ -14,7 +14,6 @@
 
 const int SERIALBUF_SIZE   = 1024;
 const int ROS_RATE         = 10;
-const int BAUD_RATE        = 19200;
 const int TOPIC_QUEUE_SIZE = 1000;
 // const char* COMPORT_DEVICE = "/tty/USB0";
 
@@ -23,7 +22,7 @@ const int WHEELDIAM        = 143;
 const int RED_RATIO        = 64;
 const int ENCODER_PPR      = 24;
 
-const double FIRMWARE_DELTA_T = 0.0005;
+const double FIRMWARE_DELTA_T = 0.005;
 
 const int MILLIS_PER_SEC   = 1000000;
 const double PI            = 3.14159265359;

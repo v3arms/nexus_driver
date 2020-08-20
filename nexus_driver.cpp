@@ -7,7 +7,7 @@ NexusDriver::NexusDriver(ros::NodeHandle& nh)
 , _ros_rate(ros::Rate(ROS_RATE))
 , _node_handle(nh)
 , _bufsize(SERIALBUF_SIZE)
-, _baudrate(BAUD_RATE)
+, _baudrate(BAUDRATE)
 , _topic_queue_size(TOPIC_QUEUE_SIZE)
 , _wheelbase(WHEELBASE)
 , _wheeldiam(WHEELDIAM)
@@ -38,8 +38,6 @@ NexusDriver::~NexusDriver() {
 void NexusDriver::setWheelState(int16_t w1_pwm, int16_t w2_pwm) {
     _sendbuf[0] = w1_pwm;
     _sendbuf[1] = w2_pwm;
-    // if (RS232_SendBuf(_comport_number, (unsigned char*)_sendbuf, 2 * sizeof(int16_t)) != 2)
-    //     throw ros::Exception("nexus_driver : Unable to send state. Maybe connection error.");
     
     if (write(_comport_device_fd, _sendbuf, 2 * sizeof(int16_t)) != 2 * sizeof(int16_t))
         throw ros::Exception("nexus_driver : Unable to send state. Maybe connection error.");
@@ -49,15 +47,10 @@ void NexusDriver::setWheelState(int16_t w1_pwm, int16_t w2_pwm) {
 
 void NexusDriver::getWheelState() {
     int nbytes = 0;
-    // if ((nbytes = RS232_PollComport(_comport_number, (unsigned char*)_recvbuf, 4)) != 4) {
-    //     ROS_INFO_STREAM("getState : Not enough bytes. Got " + std::to_string(nbytes));
-    // }
 
     if (read(_comport_device_fd, _recvbuf, 2 * sizeof(int16_t)) != 2 * sizeof(int16_t))
         throw ros::Exception("nexus_driver : Wrong number of bytes was read. Problems..");
-    // usleep(100000);
-    // _odom_w1_ps =  _recvbuf[0];
-    // _odom_w2_ps =  _recvbuf[1];
+
     ROS_INFO_STREAM("Wheel state [pulses] : " + std::to_string(_recvbuf[0]) + " " + std::to_string(_recvbuf[1]));
     ROS_INFO_STREAM("Wheel spd   [mmps]   : " + std::to_string(pulses2Spd(_recvbuf[0], 50000)) + " " + std::to_string(pulses2Spd(_recvbuf[1], 50000)));
 }
