@@ -2,7 +2,7 @@
 #include <math.h>
 
 
-const long int BAUD_RATE = 115200;
+const long int BAUD_RATE = 57600;
 const long int DELTA_T   = 50000;
 
 

@@ -28,7 +28,9 @@ NexusDriver::NexusDriver(ros::NodeHandle& nh)
 
 
 NexusDriver::~NexusDriver() {
-    close(_comport_device_fd);
+    if (_comport_device_fd != 0)
+        close(_comport_device_fd);
+    
     delete[] _recvbuf;
     delete[] _sendbuf;
     ROS_INFO_STREAM("nexus_driver : Connection closed.");
@@ -66,6 +68,24 @@ double NexusDriver::pulses2Spd(int16_t pulses, int delta_t) {
 double NexusDriver::pulses2Dist(int16_t pulses) {
     double delta_phi = 2 * PI / (_encoder_ppr * _red_ratio) * pulses;
     return delta_phi * _wheeldiam / (2.0 * 1000);
+}
+
+
+void NexusDriver::checkOdom() {
+    double d1          = pulses2Dist(_odom_w1_ps),
+           d2          = pulses2Dist(_odom_w2_ps),
+           delta_theta = (d2  - d1) / (_wheelbase / 1000.0);
+    
+    odom_x += cos(delta_theta) * (d1 + d2) / 2.0;
+    odom_y += sin(delta_theta) * (d1 + d2) / 2.0;
+    odom_theta += delta_theta;
+    odom_linspd = (d1 + d2) / (2.0 * _firmw_delta_t);
+    odom_angspd = delta_theta / _firmw_delta_t;
+
+    // ROS_INFO_STREAM("spd   [mmps]   : " + std::to_string(pulses2Spd(_recvbuf[0], 50000)) + " " + std::to_string(pulses2Spd(_recvbuf[1], 50000)));
+    ROS_INFO_STREAM("POS | x = " + std::to_string(odom_x) + ", y = " + std::to_string(odom_y) + ", th = " + std::to_string(odom_theta));
+    ROS_INFO_STREAM("SPD | lin = " + std::to_string(odom_linspd) + ", ang = " + std::to_string(odom_angspd));
+
 }
 
 

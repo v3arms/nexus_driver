@@ -12,7 +12,7 @@
 #include <sys/file.h>
 
 
-const int BAUDRATE = 115200;
+const int BAUDRATE = 57600;
 
 
 int openAsComPort(const char* device, int _vtime = 10, int _vmin = 4, int _baudrate = BAUDRATE);

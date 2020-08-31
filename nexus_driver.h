@@ -22,7 +22,7 @@ const int WHEELDIAM        = 143;
 const int RED_RATIO        = 64;
 const int ENCODER_PPR      = 24;
 
-const double FIRMWARE_DELTA_T = 0.005;
+const double FIRMWARE_DELTA_T = 0.05;
 
 const int MILLIS_PER_SEC   = 1000000;
 const double PI            = 3.14159265359;
@@ -69,6 +69,9 @@ private :
     
     const char*          _comport_device_name;
     int                  _comport_device_fd;
+
+    double odom_x, odom_y, odom_theta, odom_linspd, odom_angspd;
+    void checkOdom();
 
     void set_state_callback(const geometry_msgs::Twist::ConstPtr& twist);
     void pid_callback(const std_msgs::Float64::ConstPtr& effort);

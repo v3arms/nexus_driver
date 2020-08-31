@@ -72,8 +72,8 @@ int openAsComPort(const char* device, int _vtime, int _vmin, int _baudrate) {
     tty.c_cc[VTIME] = _vtime;
     tty.c_cc[VMIN]  = _vmin;
 
-    cfsetispeed(&tty, B38400);
-    cfsetospeed(&tty, B38400);
+    cfsetispeed(&tty, _baudrate);
+    cfsetospeed(&tty, _baudrate);
 
     tcflush(fd, TCIFLUSH);
 
