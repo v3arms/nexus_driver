@@ -8,6 +8,9 @@
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/console.h>
+#include <message_filters/time_synchronizer.h>
+#include <message_filters/subscriber.h>
+// #include <boost/bind.hpp>
 #include "comport.h"
 #include <cmath>
 
@@ -50,7 +53,14 @@ private :
     ros::NodeHandle&     _node_handle;
     ros::Subscriber      _twist;
     ros::Publisher       _odom;
+    ros::Publisher       _to_pid[2];
     ros::Rate            _ros_rate;
+
+    ros::Subscriber      _from_pid_float[2];
+    ros::Publisher       _float2odom[2];
+    message_filters::Subscriber<nav_msgs::Odometry> _w1_from_pid_odom, _w2_from_pid_odom;
+    message_filters::TimeSynchronizer<nav_msgs::Odometry, nav_msgs::Odometry> _from_pid_sync;
+    // Use odom or smth with header instead this*
 
     nav_msgs::Odometry   _odom_msg;
 
@@ -64,7 +74,7 @@ private :
     int                  _red_ratio;
     int                  _encoder_ppr;
     int                  _wheeldiam;
-    int16_t              _odom_w1_ps, _odom_w2_ps;
+    int16_t              _cur_pulses[2];
     double               _firmw_delta_t;
     
     const char*          _comport_device_name;
@@ -73,8 +83,10 @@ private :
     double odom_x, odom_y, odom_theta, odom_linspd, odom_angspd;
     void checkOdom();
 
-    void set_state_callback(const geometry_msgs::Twist::ConstPtr& twist);
-    void pid_callback(const std_msgs::Float64::ConstPtr& effort);
+    void w1_from_pid_float(const std_msgs::Float64::ConstPtr& pwm);
+    void w2_from_pid_float(const std_msgs::Float64::ConstPtr& pwm);
+
+    void sendPwm(const nav_msgs::Odometry::ConstPtr& w1_pwm, const nav_msgs::Odometry::ConstPtr& w2_pwm);
 
 };
 

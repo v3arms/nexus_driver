@@ -15,15 +15,36 @@ NexusDriver::NexusDriver(ros::NodeHandle& nh)
 , _encoder_ppr(ENCODER_PPR)
 , _firmw_delta_t(FIRMWARE_DELTA_T)
 , _comport_device_name("/dev/ttyUSB0")
+
+, _odom(_node_handle.advertise<nav_msgs::Odometry>("nexus/odom", _topic_queue_size))
+// , _twist(_node_handle.subscribe("nexus/cmd_vel", _topic_queue_size, &NexusDriver::set_state_callback, this))
+
+, _to_pid({
+    _node_handle.advertise<std_msgs::Float64>("nexus/w1/state", _topic_queue_size),
+    _node_handle.advertise<std_msgs::Float64>("nexus/w2/state", _topic_queue_size)
+})
+
+, _from_pid_float({
+    nh.subscribe("nexus/w1/control_effort", _topic_queue_size, &NexusDriver::w1_from_pid_float, this),
+    nh.subscribe("nexus/w2/control_effort", _topic_queue_size, &NexusDriver::w2_from_pid_float, this)
+})
+
+, _float2odom({
+    nh.advertise<nav_msgs::Odometry>("nexus/w1/float2odom", _topic_queue_size),
+    nh.advertise<nav_msgs::Odometry>("nexus/w2/float2odom", _topic_queue_size)
+})
+, _w1_from_pid_odom(nh, "nexus/w1/float2odom", 1)
+, _w2_from_pid_odom(nh, "nexus/w2/float2odom", 1)
+, _from_pid_sync(_w1_from_pid_odom, _w2_from_pid_odom, 10)
 {
-    _comport_device_fd = openAsComPort(_comport_device_name);
+    _comport_device_fd = openAsComPort(_comport_device_name, _baudrate);
     if (_comport_device_fd == -1)
         throw ros::Exception("nexus_driver : Failed to open comport");
 
     ROS_INFO_STREAM("nexus_driver : Connection opened successfully.");
 
-    _odom  = _node_handle.advertise<nav_msgs::Odometry>("nexus/odom", _topic_queue_size);
-    _twist = _node_handle.subscribe("nexus/cmd_vel", _topic_queue_size, &NexusDriver::set_state_callback, this);
+    _from_pid_sync.registerCallback(boost::bind(&NexusDriver::sendPwm, this, _1, _2));
+    // _from_pid_sync.registerCallback(&NexusDriver::sendPwm);
 }   
 
 
@@ -53,8 +74,11 @@ void NexusDriver::getWheelState() {
     if (read(_comport_device_fd, _recvbuf, 2 * sizeof(int16_t)) != 2 * sizeof(int16_t))
         throw ros::Exception("nexus_driver : Wrong number of bytes was read. Problems..");
 
-    ROS_INFO_STREAM("Wheel state [pulses] : " + std::to_string(_recvbuf[0]) + " " + std::to_string(_recvbuf[1]));
-    ROS_INFO_STREAM("Wheel spd   [mmps]   : " + std::to_string(pulses2Spd(_recvbuf[0], 50000)) + " " + std::to_string(pulses2Spd(_recvbuf[1], 50000)));
+    _to_pid[0].publish(_recvbuf[0]);
+    _to_pid[1].publish(_recvbuf[1]);
+
+    ROS_DEBUG_STREAM("Wheel state [pulses] | " + std::to_string(_recvbuf[0]) + " " + std::to_string(_recvbuf[1]));
+    ROS_DEBUG_STREAM("Wheel spd   [mmps]   | " + std::to_string(pulses2Spd(_recvbuf[0], 50000)) + " " + std::to_string(pulses2Spd(_recvbuf[1], 50000)));
 }
 
 
@@ -72,8 +96,8 @@ double NexusDriver::pulses2Dist(int16_t pulses) {
 
 
 void NexusDriver::checkOdom() {
-    double d1          = pulses2Dist(_odom_w1_ps),
-           d2          = pulses2Dist(_odom_w2_ps),
+    double d1          = pulses2Dist(_cur_pulses[0]),
+           d2          = pulses2Dist(_cur_pulses[1]),
            delta_theta = (d2  - d1) / (_wheelbase / 1000.0);
     
     odom_x += cos(delta_theta) * (d1 + d2) / 2.0;
@@ -83,15 +107,15 @@ void NexusDriver::checkOdom() {
     odom_angspd = delta_theta / _firmw_delta_t;
 
     // ROS_INFO_STREAM("spd   [mmps]   : " + std::to_string(pulses2Spd(_recvbuf[0], 50000)) + " " + std::to_string(pulses2Spd(_recvbuf[1], 50000)));
-    ROS_INFO_STREAM("POS | x = " + std::to_string(odom_x) + ", y = " + std::to_string(odom_y) + ", th = " + std::to_string(odom_theta));
-    ROS_INFO_STREAM("SPD | lin = " + std::to_string(odom_linspd) + ", ang = " + std::to_string(odom_angspd));
+    ROS_DEBUG_STREAM("ODOM_POS | x = " + std::to_string(odom_x) + ", y = " + std::to_string(odom_y) + ", th = " + std::to_string(odom_theta));
+    ROS_DEBUG_STREAM("ODOM_SPD | lin = " + std::to_string(odom_linspd) + ", ang = " + std::to_string(odom_angspd));
 
 }
 
 
 void NexusDriver::updateOdometry() {
-    double d1          = pulses2Dist(_odom_w1_ps),
-           d2          = pulses2Dist(_odom_w2_ps),
+    double d1          = pulses2Dist(_cur_pulses[0]),
+           d2          = pulses2Dist(_cur_pulses[1]),
            delta_theta = (d2  - d1) / (_wheelbase / 1000.0);
 
     // q = [cos(delta_theta / 2), sin(delta_theta / 2) * v3d]
@@ -111,11 +135,30 @@ void NexusDriver::publishOdometry() {
 }
 
 
-void NexusDriver::set_state_callback(const geometry_msgs::Twist::ConstPtr& twist) {
-    setWheelState(twist->linear.x, twist->linear.y);
+void NexusDriver::sendPwm(const nav_msgs::Odometry::ConstPtr& w1_pwm, const nav_msgs::Odometry::ConstPtr& w2_pwm) {
+    _sendbuf[0] = w1_pwm->pose.pose.position.x, _sendbuf[1] = w2_pwm->pose.pose.position.x;
+
+    ROS_DEBUG_STREAM("send | " << _sendbuf[0] << " " << _sendbuf[1]);
+
+    if (write(_comport_device_fd, _sendbuf, 2 * sizeof(int16_t)) != 2 * sizeof(int16_t))
+        throw ros::Exception("nexus_driver : Unable to send state. Maybe connection error.");
+
 }
 
 
-void pid_callback(const std_msgs::Float64::ConstPtr& effort) {
+void NexusDriver::w1_from_pid_float(const std_msgs::Float64::ConstPtr& pwm) {
+    nav_msgs::Odometry odom;
+    odom.header.stamp = ros::Time::now();
+    odom.pose.pose.position.x = pwm->data;
 
+    _float2odom[0].publish(odom);
+}
+
+
+void NexusDriver::w2_from_pid_float(const std_msgs::Float64::ConstPtr& pwm) {
+    nav_msgs::Odometry odom;
+    odom.header.stamp = ros::Time::now();
+    odom.pose.pose.position.x = pwm->data;
+
+    _float2odom[1].publish(odom);
 }
