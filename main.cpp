@@ -5,6 +5,7 @@
 
 
 int main(int argc, char *argv[]) {
+    /*
     ros::init(argc, argv, "nexus_driver");
     ros::NodeHandle nh;
     try {
@@ -28,6 +29,6 @@ int main(int argc, char *argv[]) {
         ROS_INFO_STREAM(e.what());
         ROS_INFO_STREAM("Cannot close fd!");
     }
-    
+    */
     return 0;
 }

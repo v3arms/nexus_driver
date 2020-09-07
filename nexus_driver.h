@@ -10,7 +10,6 @@
 #include <ros/console.h>
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/subscriber.h>
-// #include <boost/bind.hpp>
 #include "comport.h"
 #include <cmath>
 
@@ -26,67 +25,79 @@ const int RED_RATIO        = 64;
 const int ENCODER_PPR      = 24;
 
 const double FIRMWARE_DELTA_T = 0.05;
-
 const int MILLIS_PER_SEC   = 1000000;
+
 const double PI            = 3.14159265359;
+
+enum Wheel {
+    Left,
+    Right
+};
+
+namespace mf = message_filters;
+
+
+class WheelSpecs {
+public:
+    WheelSpecs(double base, double diam, int redRatio, int encoderPPR);
+    WheelSpecs(const char* filename);
+    double pulses2Spd(int pulses);
+    double pulses2Dist(int pulses);
+
+private:
+    const double base;
+    const double diam;
+    const int redRatio;
+    const int encoderPPR;
+};
+
+
+/* 
+    provides setup for reading/writing batches via serial port
+    batch is read/written in synchronous mode (block until read/write <size> bytes)
+    vtime - max blocking time, read()(write()) returns after vtime seconds
+    vmin  - min number of bytes to unblock
+*/
+class SerialConnection {
+public:
+    SerialConnection(const char* device, int vtime = 10, int vmin = 4, int baudrate = BAUDRATE);
+    ~SerialConnection();
+
+    int readBatch(void* recv)  const;
+    int writeBatch(void* send) const;
+    // void setBatchSize(size_t size);
+private:
+    const int comportFd;
+    const int vtime;
+    const int vmin; 
+    const int baudRate;
+
+};
 
 
 class NexusDriver {
-public :
-    NexusDriver(ros::NodeHandle& nh);
+public:
+    NexusDriver(ros::NodeHandle& nh, const WheelSpecs& whl, const SerialConnection& con, size_t topicSize = 1000);
     ~NexusDriver();
-
-    void publishOdometry();
-    void updateOdometry();
-    double pulses2Spd(int16_t pulses, int delta_t);
-    double pulses2Dist(int16_t pulses);
-
-    void sleep()              {_ros_rate.sleep();}
-    void setRate(int rate_hz) {_ros_rate = ros::Rate(rate_hz);}
-    void setBaudRate(int rate_baud) {}
-    void setWheelState(int16_t w1_pwm, int16_t w2_pwm);
-
-    void getWheelState();
-    int  getRate();
+    void run(size_t rate);
     
-private :
-    ros::NodeHandle&     _node_handle;
-    ros::Subscriber      _twist;
-    ros::Publisher       _odom;
-    ros::Publisher       _to_pid[2];
-    ros::Rate            _ros_rate;
-
-    ros::Subscriber      _from_pid_float[2];
-    ros::Publisher       _float2odom[2];
-    message_filters::Subscriber<nav_msgs::Odometry> _w1_from_pid_odom, _w2_from_pid_odom;
-    message_filters::TimeSynchronizer<nav_msgs::Odometry, nav_msgs::Odometry> _from_pid_sync;
-    // Use odom or smth with header instead this*
-
-    nav_msgs::Odometry   _odom_msg;
-
-    int16_t             *_recvbuf, *_sendbuf;
-    int                  _comport_number;
-    int                  _bufsize;
-    int                  _baudrate;
-    int                  _topic_queue_size;
-
-    int                  _wheelbase;
-    int                  _red_ratio;
-    int                  _encoder_ppr;
-    int                  _wheeldiam;
-    int16_t              _cur_pulses[2];
-    double               _firmw_delta_t;
+private:
+    WheelSpecs wheel;
+    SerialConnection serial;
     
-    const char*          _comport_device_name;
-    int                  _comport_device_fd;
+    const int topicSize;
+    
 
-    double odom_x, odom_y, odom_theta, odom_linspd, odom_angspd;
-    void checkOdom();
+    ros::NodeHandle nh;
+    ros::Rate rate;
+    ros::Publisher effortAsOdomPub1, effortAsOdomPub2;
+    ros::Publisher wheelState1, wheelState2;
+    ros::Subscriber controlEffort1, controlEffort2;
+    mf::Subscriber<nav_msgs::Odometry> effortAsOdomSub1, effortAsOdomSub2;
+    mf::TimeSynchronizer<nav_msgs::Odometry, nav_msgs::Odometry> synchronizer;
 
-    void w1_from_pid_float(const std_msgs::Float64::ConstPtr& pwm);
-    void w2_from_pid_float(const std_msgs::Float64::ConstPtr& pwm);
-
-    void sendPwm(const nav_msgs::Odometry::ConstPtr& w1_pwm, const nav_msgs::Odometry::ConstPtr& w2_pwm);
+    void controlEffortCallback(const std_msgs::Float64::ConstPtr& pwm, const Wheel& wheel);
+    void sendEffort(const nav_msgs::Odometry::ConstPtr& w1_pwm, const nav_msgs::Odometry::ConstPtr& w2_pwm);
 
 };
 

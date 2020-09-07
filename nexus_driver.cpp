@@ -1,6 +1,42 @@
 #include "nexus_driver.h"
 
 
+NexusDriver::NexusDriver(const WheelSpecs* whl, const SerialConnection* con, size_t topicSize)
+: wheel(whl)
+, serial(con)
+, topicSize(topicSize)
+, nh(ros::NodeHandle())
+, effortAsOdomPub1(nh.advertise<nav_msgs::Odometry>("nexus/left_wheel/effortAsOdom", topicSize))
+, effortAsOdomPub2(nh.advertise<nav_msgs::Odometry>("nexus/right_wheel/effortAsOdom", topicSize))
+, wheelState1(nh.advertise<std_msgs::Float64>("nexus/left_wheel/state", topicSize))
+, wheelState2(nh.advertise<std_msgs::Float64>("nexus/right_wheel/state", topicSize))
+, controlEffort1(nh.subscribe<std_msgs::Float64> 
+        (
+            "nexus/left_wheel/control_effort", 
+            topicSize, 
+            boost::bind(&NexusDriver::controlEffortCallback, this, _1, Wheel::Left)
+        ))
+, controlEffort2(nh.subscribe<std_msgs::Float64> 
+        (
+            "nexus/right_wheel/control_effort", 
+            topicSize, 
+            boost::bind(&NexusDriver::controlEffortCallback, this, _1, Wheel::Right)
+        ))
+, effortAsOdomSub1(nh, "nexus/left_wheel/effortAsOdom", 1)
+, effortAsOdomSub2(nh, "nexus/right_wheel/effortAsOdom", 1)
+, synchronizer(effortAsOdomSub1, effortAsOdomSub2, 10)
+, rate(ROS_RATE)
+{
+    synchronizer.registerCallback(boost::bind(&NexusDriver::sendEffort, this, _1, _2));
+}
+
+
+NexusDriver::~NexusDriver()
+{
+
+}
+
+/*
 NexusDriver::NexusDriver(ros::NodeHandle& nh)
 : _recvbuf(new int16_t[SERIALBUF_SIZE])
 , _sendbuf(new int16_t[SERIALBUF_SIZE])
@@ -162,3 +198,4 @@ void NexusDriver::w2_from_pid_float(const std_msgs::Float64::ConstPtr& pwm) {
 
     _float2odom[1].publish(odom);
 }
+*/
