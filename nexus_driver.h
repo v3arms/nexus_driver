@@ -12,21 +12,11 @@
 #include <message_filters/subscriber.h>
 #include "comport.h"
 #include <cmath>
+#include "nexus_specs.h"
 
-
-const int SERIALBUF_SIZE   = 1024;
 const int ROS_RATE         = 10;
 const int TOPIC_QUEUE_SIZE = 1000;
-// const char* COMPORT_DEVICE = "/tty/USB0";
-
-const int WHEELBASE        = 280;
-const int WHEELDIAM        = 143;
-const int RED_RATIO        = 64;
-const int ENCODER_PPR      = 24;
-
-const double FIRMWARE_DELTA_T = 0.05;
 const int MILLIS_PER_SEC   = 1000000;
-
 const double PI            = 3.14159265359;
 
 enum Wheel {
@@ -40,9 +30,9 @@ namespace mf = message_filters;
 class WheelSpecs {
 public:
     WheelSpecs(double base, double diam, int redRatio, int encoderPPR);
-    WheelSpecs(const char* filename);
-    double pulses2Spd(int pulses);
-    double pulses2Dist(int pulses);
+    // WheelSpecs(const char* filename);
+    double pulses2Spd(int pulses, int delta_t_ms) const;
+    double pulses2Dist(int pulses) const;
 
 private:
     const double base;
@@ -67,26 +57,26 @@ public:
     int writeBatch(void* send) const;
     // void setBatchSize(size_t size);
 private:
-    const int comportFd;
     const int vtime;
     const int vmin; 
     const int baudRate;
+    const int comportFd;
 
 };
 
 
 class NexusDriver {
 public:
-    NexusDriver(ros::NodeHandle& nh, const WheelSpecs& whl, const SerialConnection& con, size_t topicSize = 1000);
+    NexusDriver(const WheelSpecs* whl, const SerialConnection* con, size_t topicSize = 1000);
     ~NexusDriver();
-    void run(size_t rate);
+    void run(size_t delta_t);
     
 private:
-    WheelSpecs wheel;
-    SerialConnection serial;
+    const WheelSpecs *wheel;
+    const SerialConnection *serial;
+    size_t deltaT;
     
-    const int topicSize;
-    
+    const size_t topicSize;
 
     ros::NodeHandle nh;
     ros::Rate rate;
@@ -97,8 +87,8 @@ private:
     mf::TimeSynchronizer<nav_msgs::Odometry, nav_msgs::Odometry> synchronizer;
 
     void controlEffortCallback(const std_msgs::Float64::ConstPtr& pwm, const Wheel& wheel);
-    void sendEffort(const nav_msgs::Odometry::ConstPtr& w1_pwm, const nav_msgs::Odometry::ConstPtr& w2_pwm);
-
+    void sendToSerial(const nav_msgs::Odometry::ConstPtr& w1_pwm, const nav_msgs::Odometry::ConstPtr& w2_pwm);
+    void getWheelState();
 };
 
 

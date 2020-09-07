@@ -1,34 +1,31 @@
+#define DEBUG 
+
+
 #include "nexus_driver.h"
-
-
-#define DEBUG 1
+#include <iostream>
 
 
 int main(int argc, char *argv[]) {
-    /*
     ros::init(argc, argv, "nexus_driver");
-    ros::NodeHandle nh;
+    SerialConnection *con;
     try {
-        NexusDriver *drv = new NexusDriver(nh);
-        drv->setRate(25);
-        for (int i = 0; ros::ok(); i = (i + 1) % 40) {
-            try {
-                ros::spinOnce();
-                drv->sleep();
-                drv->getWheelState();
-            } catch (ros::Exception& e) {
-                ROS_INFO_STREAM(e.what());
-                if (DEBUG) {
-                    delete drv;
-                    return 1;
-                }
-            }
-        }
-        delete drv;
-    } catch (ros::Exception& e) {
-        ROS_INFO_STREAM(e.what());
-        ROS_INFO_STREAM("Cannot close fd!");
+        con = new SerialConnection("/dev/ttyUSB0");
     }
-    */
+    catch (std::exception& e)
+    {
+        std::cout << e.what() << std::endl;
+        return 0;
+    }
+    WheelSpecs w(
+        static_cast<double>(WHEELBASE),
+        static_cast<double>(WHEELDIAM),
+        RED_RATIO,
+        ENCODER_PPR
+    );
+    NexusDriver driver(&w, con);
+    
+        
+    driver.run(60);
+    delete con;
     return 0;
 }
