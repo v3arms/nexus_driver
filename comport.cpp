@@ -34,18 +34,18 @@ int openAsComPort(const char* device, int _vtime, int _vmin, int _baudrate) {
     errno = 0;
     int fd = open(device, O_RDWR | O_NOCTTY);
     if (fd < 0) {
-        printf("%s\n", strerror(errno));
+        fprintf(stderr, "%s\n", strerror(errno));
         return -1;
     }
     
     if(flock(fd, LOCK_EX | LOCK_NB) == -1) {
-       printf("Cannot use comport : locked by other process");
+       fprintf(stderr, "Cannot use comport : locked by other process");
        return -1;
     }
     
     struct termios tty;
     if (tcgetattr(fd, &tty) != 0) {
-        printf("%s\n", strerror(errno));
+        fprintf(stderr, "%s\n", strerror(errno));
         return -1;
     }
     memset(&tty, 0, sizeof(tty));
@@ -78,7 +78,7 @@ int openAsComPort(const char* device, int _vtime, int _vmin, int _baudrate) {
     tcflush(fd, TCIFLUSH);
 
     if (tcsetattr(fd, TCSANOW, &tty) != 0) {
-        printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
+        fprintf(stderr, "Error %i from tcsetattr: %s\n", errno, strerror(errno));
     }   
 
     return fd;

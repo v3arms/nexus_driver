@@ -9,11 +9,11 @@ int main(int argc, char *argv[]) {
     ros::init(argc, argv, "nexus_driver");
     SerialConnection *con;
     try {
-        con = new SerialConnection("/dev/ttyUSB0");
+        con = new SerialConnection("/dev/ttyUSB0", 1, 4);
     }
     catch (std::exception& e)
     {
-        std::cout << e.what() << std::endl;
+        std::cerr << e.what() << std::endl;
         return 0;
     }
     WheelSpecs w(
@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     NexusDriver driver(&w, con);
     
         
-    driver.run(60);
+    driver.run(20000);
     delete con;
     return 0;
 }

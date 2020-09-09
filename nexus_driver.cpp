@@ -140,7 +140,7 @@ void NexusDriver::run(size_t delta_t_ms)
     rate = ros::Rate(1000.0 / delta_t_ms);
     deltaT = delta_t_ms;
 
-    while(true)
+    while(ros::ok())
     {
 #ifndef DEBUG
         try
@@ -154,6 +154,7 @@ void NexusDriver::run(size_t delta_t_ms)
 #else
         getWheelState();
 #endif
+        ros::spinOnce();
         rate.sleep();
     }
 }
