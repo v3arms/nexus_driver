@@ -79,6 +79,11 @@ void loop() {
             pulses_count[0] *= enc_state_map[w1_old_enc_state][w1_new_enc_state];
             pulses_count[1] *= -enc_state_map[w2_old_enc_state][w2_new_enc_state];
             Serial.write((char*)pulses_count, 2 * sizeof(int16_t));
+
+            // Serial.print(pulses_count[0]);
+            // Serial.print(" ");
+            // Serial.println(pulses_count[1]);
+            
         }
 		    
 		prev_micros = curr_micros;

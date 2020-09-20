@@ -85,7 +85,7 @@ NexusDriver::NexusDriver(const WheelSpecs* whl, const SerialConnection* con, siz
 
 NexusDriver::~NexusDriver()
 {
-    ROS_DEBUG_STREAM("NexusDriver | Connection closed.");
+    ROS_INFO_STREAM("NexusDriver | Connection closed.");
 }
 
 void NexusDriver::controlEffortCallback(const std_msgs::Float64::ConstPtr& pwm, const Wheel& wheel)
@@ -111,7 +111,7 @@ void NexusDriver::sendToSerial(const nav_msgs::Odometry::ConstPtr& w1_pwm, const
         throw std::runtime_error("NexusDriver::sendEffort | write batch error : " + std::to_string(c) + " bytes was written instead of 4");
 
 #ifndef DEBUG
-    ROS_DEBUG_STREAM("ToSerial   | " << buf[0] << " " << buf[1]);
+    ROS_INFO_STREAM("ToSerial   | " << buf[0] << " " << buf[1]);
 #endif
 }
 
@@ -130,7 +130,7 @@ void NexusDriver::getWheelState()
     wheelState1.publish(m0);
     wheelState2.publish(m1);
 #ifndef DEBUG
-    ROS_DEBUG_STREAM("FromSerial | " << buf[0] << " " << buf[1]);
+    ROS_INFO_STREAM("FromSerial | " << buf[0] << " " << buf[1]);
 #endif
 }
 
@@ -149,7 +149,7 @@ void NexusDriver::run(size_t delta_t_ms)
         }
         catch (const std::runtime_error& e)
         {
-            ROS_ERROR_STREAM(e.what());
+            ROS_INFO_STREAM(e.what());
         }
 #else
         getWheelState();
@@ -173,8 +173,8 @@ void NexusDriver::checkOdom() {
     odom_angspd = delta_theta / _firmw_delta_t;
 
     // ROS_INFO_STREAM("spd   [mmps]   : " + std::to_string(pulses2Spd(_recvbuf[0], 50000)) + " " + std::to_string(pulses2Spd(_recvbuf[1], 50000)));
-    ROS_DEBUG_STREAM("ODOM_POS | x = " + std::to_string(odom_x) + ", y = " + std::to_string(odom_y) + ", th = " + std::to_string(odom_theta));
-    ROS_DEBUG_STREAM("ODOM_SPD | lin = " + std::to_string(odom_linspd) + ", ang = " + std::to_string(odom_angspd));
+    ROS_INFO_STREAM("ODOM_POS | x = " + std::to_string(odom_x) + ", y = " + std::to_string(odom_y) + ", th = " + std::to_string(odom_theta));
+    ROS_INFO_STREAM("ODOM_SPD | lin = " + std::to_string(odom_linspd) + ", ang = " + std::to_string(odom_angspd));
 
 }
 
